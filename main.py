@@ -55,30 +55,35 @@ def newton_cotes(p_func=p, N_: int = 3, h_: int = -1,
     return np.linalg.solve(A, mU)
 
 
-def Gauss(p_func=p, N_: int = 3, h_: int = -1,
+def Gauss(p_func=p, N_: int = 3,
                  a_: float = a, b_: float = b):
     mU = []
-    # Задаём узлы квадратурной формулы
-    if (N_!=-1):
-        nodes_x = np.linspace(a_, b_, N_)
-    else:
-        if (h_!=-1):
-            nodes_x = np.range(a_,b_,h_)
+
     # Вычисляем моменты весовой функции p(x) на [a,b]
-    for i in range(0, 2*N_-1):
+    for i in range(0, 2*N_+1):
         v, *_ = integrate.quad(func=lambda x_: p_func(x_) * np.power(x_, i), a=a_, b=b_)
         mU.append(v)
+
+    mU_n_plus_s = mU[N_:2*N_]
     # Решаем СЛАУ
-    mU = np.array(mU)
-    A = [np.power(nodes_x, i) for i in range(0, N_)]
-    return np.linalg.solve(A, mU)
+
+    mU_j_plus_s = np.zeros((N_,N_))
+    for i in range(0, N_):
+        for j in range(0, N_):
+            mU_j_plus_s[i,j]=mU[i+j]
+
+    a_i_j = np.linalg.solve(mU_j_plus_s, mU_n_plus_s)
+    x_j = np.roots(a_i_j.transpose())
+    A = [np.power(x_j, i) for i in range(0, N_)]
+    return np.linalg.solve(A, mU[0:N_])
 
 
 exact, *_ = integrate.quad(func=F, a=a, b=b)
 
 N=3;
 x_ = np.linspace(a, b, N)
-An = newton_cotes(N_=N)
+#An = newton_cotes(N_=N)
+An = Gauss(N_=N)
 quad = np.sum(An * f(x_))
 error = abs(quad - exact)
 print('{:2d}  {:10.9f}  {:.5e}'.format(N, quad, error))
