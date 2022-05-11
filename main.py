@@ -105,8 +105,20 @@ def Aitken_process(h__: float = abs(b - a) / 3, L: float = 2, a_: float = a, b_:
     m = -(np.log((S_h3 - S_h2) / (S_h2 - S_h1)) / np.log(L))
     return m
 
-def Richardson(h__: float=abs(b - a) / 3, method: string='newton_cotes', r: int=4):
-    pass
+def Richardson(h__: float=abs(b - a) / 3, method: str ='newton_cotes', r: int=4):
+    """
+    Parameters
+    ----------
+    :param h__: float
+        величина шага
+    :param method: str =
+        ипользуемый метод оценки == 'newton_cotes' || 'gauss'
+    :param r: int
+        степень разложения
+    :return: list
+    """
+    result = list()
+    return result
     # Коэффициенты C_i мы находим как A_i? Или как?
 
 # Task 1.3
