@@ -25,7 +25,6 @@ def F(x: np.float_) -> np.float_:
 
 
 exact, err = integrate.quad(func=F, a=a, b=b)
-print(exact)
 
 
 # Task 1.1
@@ -60,11 +59,11 @@ def Gauss(p_func=p, N_: int = 3,
     mU = []
 
     # Вычисляем моменты весовой функции p(x) на [a,b]
-    for i in range(0, 2*N_+1):
+    for i in range(0, 2*N_):
         v, *_ = integrate.quad(func=lambda x_: p_func(x_) * np.power(x_, i), a=a_, b=b_)
         mU.append(v)
 
-    mU_n_plus_s = mU[N_:2*N_]
+    mU_n_plus_s = list(map(lambda x:-x, mU[N_:2*N_]))
     # Решаем СЛАУ
 
     mU_j_plus_s = np.zeros((N_,N_))
@@ -72,8 +71,9 @@ def Gauss(p_func=p, N_: int = 3,
         for j in range(0, N_):
             mU_j_plus_s[i,j]=mU[i+j]
 
-    a_i_j = np.linalg.solve(mU_j_plus_s, mU_n_plus_s)
-    x_j = np.roots(a_i_j.transpose())
+    a_i_j = np.array([1.0,*((np.linalg.solve(mU_j_plus_s, mU_n_plus_s)).transpose())])
+
+    x_j = np.roots(a_i_j)
     A = [np.power(x_j, i) for i in range(0, N_)]
     return np.linalg.solve(A, mU[0:N_])
 
@@ -86,6 +86,7 @@ x_ = np.linspace(a, b, N)
 An = Gauss(N_=N)
 quad = np.sum(An * f(x_))
 error = abs(quad - exact)
+print(exact)
 print('{:2d}  {:10.9f}  {:.5e}'.format(N, quad, error))
 
 # Task 1.2
