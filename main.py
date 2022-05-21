@@ -3,7 +3,7 @@
 import numpy as np
 from scipy import integrate
 
-# Степени и пределы интегрирования
+# Степени и пределы интегрирования 3
 alpha = 1 / 5
 betta = 0
 a = 0.1
@@ -42,7 +42,7 @@ x1 = a
 x2 = (a + b) / 2
 x3 = b
 
-TARGET = 3.578861536040539915439859609644293194417  # Точное значение интеграла
+TARGET = 3.578861536040539915439859609644293194417  # Точное значение интеграла 3
 
 
 def newton_cotes(p_func=p, N_: int = 3, h_: int = -1,
@@ -63,7 +63,7 @@ def newton_cotes(p_func=p, N_: int = 3, h_: int = -1,
     A = [np.power(nodes_x, i) for i in range(0, N_)]
     return np.linalg.solve(A, mU)
 
-N = 3;
+N = 3
 x_ = np.linspace(a, b, N)
 An = newton_cotes(N_=N)
 quad = np.sum(An * f(x_))
@@ -90,7 +90,7 @@ def Aitken_process(h__: float = abs(b - a) / 3, L: float = 2, a_: float = a, b_:
     S_h2 = np.sum(newton_cotes(h_=h2) * f(x_2))
     S_h3 = np.sum(newton_cotes(h_=h3) * f(x_3))
     m = -(np.log((S_h3 - S_h2) / (S_h2 - S_h1)) / np.log(L))
-    return (m)
+    return m
 
 
 def Richardson(h__: float=abs(b - a) / 3, method: str ='newton_cotes', r: int=4):
