@@ -95,19 +95,28 @@ print('{:2d}  {:10.9f}  {:.5e}'.format(N, quad, error))
 # Погрешность оценивать методом Ричардсона. На каждых по-
 # следовательных трёх сетках оценивать скорость сходимости по
 # правилу Эйткена.
-def Aitken_process(h__: float = abs(b-a)/3, L: float = 2,a_: float = a, b_: float = b):
+def Aitken_process(method, h__: float = abs(b-a)/3, L: float = 2,a_: float = a, b_: float = b):
     h1=h__
     h2=h__/L
     h3=h__/np.power(L, 2)
     x_1=np.range(a_,b_,h1)
     x_2=np.range(a_,b_,h2)
     x_3=np.range(a_,b_,h3)
-    S_h1=np.sum(newton_cotes(h_=h1) * f(x_1))
-    S_h2=np.sum(newton_cotes(h_=h2) * f(x_2))
-    S_h3=np.sum(newton_cotes(h_=h3) * f(x_3))
+    S_h1=np.sum(method(h_=h1) * f(x_1))
+    S_h2=np.sum(method(h_=h2) * f(x_2))
+    S_h3=np.sum(method(h_=h3) * f(x_3))
     m=-(np.log((S_h3-S_h2)/(S_h2-S_h1))/np.log(L))
     return(m)
 
+def Runge_rule(m, method, h__: float = abs(b-a)/3, L: float = 2,a_: float = a, b_: float = b):
+    h1 = h__
+    h2 = h__ / L
+    x_1 = np.range(a_, b_, h1)
+    x_2 = np.range(a_, b_, h2)
+    S_h1 = np.sum(method(h_=h1) * f(x_1))
+    S_h2 = np.sum(method(h_=h2) * f(x_2))
+    R = (S_h2 - S_h1)/(1-L**(-m))
+    return (R)
 # Task 1.3
 # Проведя вычисления по трём грубым сеткам с малым числом
 # шагов (например, 1, 2 и 4) использовать оценку скорости сходи-
