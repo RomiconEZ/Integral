@@ -45,6 +45,9 @@ def mU_i_s(a_: float, b_: float, s: int = 0, alpha_: float = alpha):
         for num, value in enumerate(mUs):
             res += comb(s, num+1)*pow(-1, num) * pow(a, num+1) * mUs[num]
         return [res] + mUs
+
+
+
 exact, err = integrate.quad(func=F, a=a, b=b)
 #print(exact)
 
@@ -66,22 +69,20 @@ def newton_cotes(p_func=p, N_: int = 3, h_: int = -1,
                  a_: float = a, b_: float = b):
     mU = []
     # Задаём узлы квадратурной формулы
-    if (N_!=-1):
-        nodes_x = np.linspace(a_, b_, N_)
+
+    if (h_ != -1):
+        nodes_x = np.arange(a_, b_+h_, h_)
     else:
-        if (h_!=-1):
-            nodes_x = np.range(a_,b_,h_)
+        nodes_x = np.linspace(a_, b_, N_)
     # Вычисляем моменты весовой функции p(x) на [a,b]
-    for i in range(0, N_):
-        v, *_ = integrate.quad(func=lambda x_: p_func(x_) * np.power(x_, i), a=a_, b=b_)
-        mU.append(v)
+
+    mU=mU_i_s(a_, b_, s=len(nodes_x)-1, alpha_=alpha)[::-1]
     # Решаем СЛАУ
     mU = np.array(mU)
-    A = [np.power(nodes_x, i) for i in range(0, N_)]
+    A = [np.power(nodes_x, i) for i in range(0, len(nodes_x))]
 
     An = np.linalg.solve(A, mU)
-    x_ = np.linspace(a, b, N)
-    quad = np.sum(An * f(x_))
+    quad = np.sum(An * f(nodes_x))
 
     return quad
 
@@ -124,9 +125,6 @@ def Aitken_process(method, h__: float = abs(b-a)/3, L: float = 2,a_: float = a, 
     h1=h__
     h2=h__/L
     h3=h__/np.power(L, 2)
-    x_1=np.arange(a_,b_,h1)
-    x_2=np.arange(a_,b_,h2)
-    x_3=np.arange(a_,b_,h3)
     S_h1=newton_cotes(h_=h1)
     S_h2=newton_cotes(h_=h2)
     S_h3=newton_cotes(h_=h3)
@@ -136,12 +134,11 @@ def Aitken_process(method, h__: float = abs(b-a)/3, L: float = 2,a_: float = a, 
 def Runge_rule(m, method, h__: float = abs(b-a)/3, L: float = 2,a_: float = a, b_: float = b):
     h1 = h__
     h2 = h__ / L
-    x_1 = np.range(a_, b_, h1)
-    x_2 = np.range(a_, b_, h2)
-    S_h1 = np.sum(method(h_=h1) * f(x_1))
-    S_h2 = np.sum(method(h_=h2) * f(x_2))
+    S_h1 = method(h_=h1)
+    S_h2 = method(h_=h2)
     R = (S_h2 - S_h1)/(1-L**(-m))
     return (R)
+
 def Richardson(h__: float=abs(b - a) / 3, method: str ='newton_cotes', r: int=4):
     """
     Parameters
@@ -158,7 +155,7 @@ def Richardson(h__: float=abs(b - a) / 3, method: str ='newton_cotes', r: int=4)
     result = list()
     return result
 
-def integral (method, p_func_=p, a_: float = a, b_: float = b,h__: float=abs(b - a) / 3, act: int = 3,L: float = 2):
+def integral (method, p_func_=p, a_: float = a, b_: float = b,h__: float=abs(b - a) / 2, act: int = 3,L: float = 2):
     m=Aitken_process(method, h__,L, a_, b_,)
     h=h__
     while (m<act+0.5)|(m-0.2<act):
@@ -215,9 +212,9 @@ def Gauss(p_func=p, N_: int = 3,
     return np.linalg.solve(A, mU[0:N_])
 
 
-N = 3
-x_ = np.linspace(a, b, N)
-An = Gauss(N_=N)
-quad = np.sum(An * f(x_))
-error = abs(quad - exact)
-print('{:2d}  {:10.9f}  {:.5e}'.format(N, quad, error))
+# N = 3
+# x_ = np.linspace(a, b, N)
+# An = Gauss(N_=N)
+# quad = np.sum(An * f(x_))
+# error = abs(quad - exact)
+# print('{:2d}  {:10.9f}  {:.5e}'.format(N, quad, error))
