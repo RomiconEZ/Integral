@@ -163,7 +163,7 @@ def integral (method, p_func_=p, a_: float = a, b_: float = b,h__: float=abs(b -
         m = Aitken_process(method, h,L, a_, b_)
     R = Runge_rule(m, method, h, L, a_, b_)
 
-    ans=newton_cotes(p_func=p_func_, h_= h,a_= a, b_= b)
+    ans=newton_cotes(p_func=p_func_, h_= h/np.power(L, 2),a_= a, b_= b)
     return ans
 
 ans = integral(method=newton_cotes)
