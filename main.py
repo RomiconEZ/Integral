@@ -150,6 +150,10 @@ def integral (method, p_func_=p, a_: float = a, b_: float = b,h__: float=abs(b -
 
 ans = integral(method=newton_cotes)
 print(ans)
+
+def skf (method, p_func_=p, a_: float = a, b_: float = b,h__: float=abs(b - a) / 3, act: int = 3,L: float = 2):
+    m=Aitken_process(method, h__,L, a_, b_,)
+
 # Task 1.3
 # Проведя вычисления по трём грубым сеткам с малым числом
 # шагов (например, 1, 2 и 4) использовать оценку скорости сходи-
