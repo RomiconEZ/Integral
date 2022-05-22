@@ -10,6 +10,20 @@ betta = 0
 a = 0.1
 b = 2.3
 
+
+def C(n, k):
+    if 0 <= k <= n:
+        nn = 1
+        kk = 1
+        for t in range(1, min(k, n - k) + 1):
+            nn *= n
+            kk *= t
+            n -= 1
+        return nn // kk
+    else:
+        return 0
+
+
 # f(x)
 def f(x: np.float_) -> np.float_:
     return 2.5 * np.cos(2. * x) * np.exp(2. * x / 3.) + \
@@ -23,6 +37,27 @@ def p(x: np.float_) -> np.float_:
 def F(x: np.float_) -> np.float_:
     return f(x) / (np.power(x - a, -alpha)*np.power(b - x, -betta))
 
+def mU_i_s(a_: float, b_: float, s: int = 0, alpha_: float = alpha):
+    """
+    Рекурсивное вычисление интеграла по промежутку [a_, b_] от функции (x^2/(x-a)^alpha)
+    Parameters
+    ----------
+    :param a_:
+    :param b_:
+    :param s:
+    :param alpha_:
+    :return: list
+    """
+    global a
+    if s == 0:
+        return [(pow((b_ - a), 1 - alpha_) - pow((a_ - a), 1 - alpha_)) / (1 - alpha_)]
+    else:
+        res = (pow((b_ - a), s + 1 - alpha_) - pow((a_ - a), s + 1 - alpha_)) / (s + 1 - alpha_)
+        mUs = mU_i_s(a_, b_, s=s-1)
+        l_ = len(mUs)
+        for num, value in enumerate(mUs):
+            res += C(s, num+1)*pow(-1, num) * pow(a, num+1) * mUs[num]
+        return [res] + mUs
 
 exact, err = integrate.quad(func=F, a=a, b=b)
 #print(exact)
