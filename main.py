@@ -3,6 +3,7 @@
 import numpy as np
 from scipy import integrate
 from scipy.special import gammaln
+from math import comb
 
 # Степени и пределы интегрирования
 alpha = 1 / 5
@@ -23,7 +24,27 @@ def p(x: np.float_) -> np.float_:
 def F(x: np.float_) -> np.float_:
     return f(x) / (np.power(x - a, -alpha)*np.power(b - x, -betta))
 
-
+def mU_i_s(a_: float, b_: float, s: int = 0, alpha_: float = alpha):
+    """
+    Рекурсивное вычисление интеграла по промежутку [a_, b_] от функции (x^2/(x-a)^alpha)
+    Parameters
+    ----------
+    :param a_:
+    :param b_:
+    :param s:
+    :param alpha_:
+    :return: list
+    """
+    global a
+    if s == 0:
+        return [(pow((b_ - a), 1 - alpha_) - pow((a_ - a), 1 - alpha_)) / (1 - alpha_)]
+    else:
+        res = (pow((b_ - a), s + 1 - alpha_) - pow((a_ - a), s + 1 - alpha_)) / (s + 1 - alpha_)
+        mUs = mU_i_s(a_, b_, s=s-1)
+        l_ = len(mUs)
+        for num, value in enumerate(mUs):
+            res += comb(s, num+1)*pow(-1, num) * pow(a, num+1) * mUs[num]
+        return [res] + mUs
 exact, err = integrate.quad(func=F, a=a, b=b)
 #print(exact)
 
@@ -150,6 +171,9 @@ def integral (method, p_func_=p, a_: float = a, b_: float = b,h__: float=abs(b -
 
 ans = integral(method=newton_cotes)
 print(ans)
+
+def skf (method, p_func_=p, a_: float = a, b_: float = b,h__: float=abs(b - a) / 3, act: int = 3,L: float = 2):
+    m=Aitken_process(method, h__,L, a_, b_,)
 # Task 1.3
 # Проведя вычисления по трём грубым сеткам с малым числом
 # шагов (например, 1, 2 и 4) использовать оценку скорости сходи-
