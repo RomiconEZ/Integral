@@ -63,7 +63,7 @@ def newton_cotes(p_func=p, N_: int = 3, h_: int = -1,
     quad = np.sum(An * f(x_))
 
     return quad
-
+//тест
 N = 3
 quad = newton_cotes(N_=N)
 error = abs(quad - exact)
