@@ -138,20 +138,20 @@ print('{:10d}  {:10.10f}  {:.10e}'.format(3, quad, error))
 def Aitken_process(method, h__: float = abs(b - a) / 3, L: float = 2, a_: float = a, b_: float = b):
 
     h3 = h__ / np.power(L, 2)
-    if np.size(S_h_s, )==0: # Если нет значений в массиве вычисляем
+    if (np.size(S_h_s, )==0): # Если нет значений в массиве вычисляем
         h1 = h__
         h2 = h__ / L
-        S_h1 = method(h_=h1)
-        S_h2 = method(h_=h2)
+        S_h1 = composite_quadrature_form(h_=h1,method=method)
+        S_h2 = composite_quadrature_form(h_=h2,method=method)
 
     else: # Если есть, то берем уже высчитанные на предыдущих шагах
         S_h1 = S_h_s[0]
         S_h2 = S_h_s[1]
 
-    S_h3 = method(h_=h3)
+    S_h3 = composite_quadrature_form(h_=h3,method=method)
     S_h_s[0] = S_h2
     S_h_s[1] = S_h3
-    m = -(np.log((S_h3 - S_h2) / S_h2 - S_h1) / np.log(L))
+    m = -(np.log((S_h3 - S_h2) / (S_h2 - S_h1)) / np.log(L))
     return m
 
 
@@ -164,7 +164,7 @@ def Runge_rule(m, method, h__: float = abs(b - a) / 3, L: float = 2, a_: float =
     return R
 
 
-def Richardson(h__: float = abs(b - a) / 3, method: str = 'newton_cotes', r: int = 4, L: float = 1.1, m: int = 3):
+def Richardson(h_: float = abs(b - a) / 3, method: str = 'newton_cotes', r: int = 4, L: float = 2, m: int = 3):
     """
     Parameters
     ----------
@@ -172,26 +172,26 @@ def Richardson(h__: float = abs(b - a) / 3, method: str = 'newton_cotes', r: int
         АСТ+1
     :param L:
         Дробление шага
-    :param h__: float
+    :param h_: float
         величина шага
     :param method: str =
         ипользуемый метод оценки == 'newton_cotes' || 'gauss'
     :param r: int
         степень разложения
-    :return: list
+    :return: np.array
     """
     # Выбираем метод
     methods = {'newton_cotes': newton_cotes, 'gauss': Gauss}
     # Выбираем набор шагов для разложения
-    hs = np.array([h__ / pow(L, k) for k in range(r + 1)])
+    hs = np.array([h_ / pow(L, k) for k in range(r + 1)])
     # Формируем матрицу из шагов
-    H_r = np.array([[pow(value, i) for i in np.arange(m, m + r)] for value in hs[:-1:]])
-    H_l = np.array([[pow(value, i) for i in np.arange(m, m + r)] for value in hs[1::]])
+    H_l = np.array([[pow(value, i) for i in np.arange(m, m + r)] for value in hs[:-1]])
+    H_r = np.array([[pow(value, i) for i in np.arange(m, m + r)] for value in hs[1:]])
     H = H_l - H_r
     # Формируем вектор разностей значений КФ
     S = []
     for i in hs:
-        S.append(methods[method](h_=i))
+        S.append(composite_quadrature_form(h_=i, method=method))
     S = np.array(S).reshape(len(S), 1)
     S = S[1:] - S[:-1]
 
@@ -199,30 +199,69 @@ def Richardson(h__: float = abs(b - a) / 3, method: str = 'newton_cotes', r: int
     Cn = np.linalg.solve(H, S)
     # На каком шаге считать погрешность?
     L_end = pow(L, r) # множитель L для последнего шага
-    h = np.array([pow(h__,k) / L_end for k in np.arange(m,m+r+1)])
-    R_h= np.matmul(Cn.T,h)
+    h = np.array([pow(hs[r],k) / L_end for k in np.arange(m,m+r)])
+    R_h= np.matmul(Cn.reshape(1,r),h.reshape(r,1))
     return R_h
 
 
-def integral(method, a_: float = a, b_: float = b, h__: float = abs(b - a) / 2, act: int = 3, L: float = 2):
-    m = Aitken_process(method, h__, L, a_, b_, )
-    print('Процесс Эйткена: m=', m)
-    h = h__
-    while (m < act + 0.5) | (m - 0.2 < act):
+# def integral(method, a_: float = a, b_: float = b, h__: float = abs(b - a) / 2, act: int = 3, L: float = 2):
+#     m = Aitken_process(method, h__, L, a_, b_, )
+#     print('Процесс Эйткена: m=', m)
+#     h = h__
+#     while (m < act + 0.5) | (m - 0.2 < act):
+#         h = h / L
+#         m = Aitken_process(method, h, L, a_, b_)
+#     S_h_s = np.empty((2,0))
+#     R = Runge_rule(m, method, h, L, a_, b_)
+#     print('Правило Рунге: R_h = ', R, ', где h=', h)
+#     ans = newton_cotes(h_=h / np.power(L, 2), a_=a, b_=b)
+#     return ans
+
+def composite_quadrature_form(method: str = 'newton_cotes', a_: float = a, b_: float = b, h_: float = abs(b - a) / 2, N_: int = 3):
+    """
+        Parameters
+        ----------
+
+        :param h_: float
+            величина шага
+        :param method: str =
+            ипользуемый метод оценки == 'newton_cotes' || 'gauss'
+        :param a_: нижний предел интегрирования
+        :param b_: верхний предел интегрирования
+        :return: number
+        """
+    methods = {'newton_cotes': newton_cotes, 'gauss': Gauss}
+    # Задаём отрезки, на которых будут строиться квадратурные формулы
+    if h_ != -1:
+        nodes_x = np.arange(a_, b_ + h_, h_)
+    else:
+        nodes_x = np.linspace(a_, b_, N_)
+    Res_S=0
+    # Вычисляем результирующую сумму,суммируя значения интегралов на каждом подотрезке
+    for i in range(len(nodes_x)-1):
+        Res_S+=methods[method](a_=nodes_x[i],b_=nodes_x[i+1])
+    return Res_S
+
+def integral_cqd(method: str = 'newton_cotes', a_: float = a, b_: float = b, h_: float = abs(b - a) / 2, req_m:int =3,L:int=2):
+    r=1
+    h=h_/L
+    R = Richardson(m=req_m, method=method, h_=h_, r=r)
+    print('Cкорость сходимости по Эйткену: ', Aitken_process(method=method, h__=h, L=L, a_=a_, b_=b_))
+
+    while (abs(R)>1e-10):
         h = h / L
-        m = Aitken_process(method, h, L, a_, b_)
-    S_h_s = np.empty((2,0))
-    R = Runge_rule(m, method, h, L, a_, b_)
-    print('Правило Рунге: R_h = ', R, ', где h=', h)
-    ans = newton_cotes(h_=h / np.power(L, 2), a_=a, b_=b)
+        m=Aitken_process(method=method, h__=h, L=L, a_=a_, b_=b_)
+        print("Cкорость сходимости по Эйткену: ", m)
+        r+=1
+        R = Richardson(m=req_m, method=method, h_=h_, r=r)
+    h = h / L**2
+    S_h_s = np.empty((2, 0))
+    print('Правило Ричардсона: R_h = ', R, ', где h=', h)
+    ans = composite_quadrature_form(method=method, a_ = a, b_= b, h_=h)
     return ans
 
-
-ans = integral(method=newton_cotes)
-print(ans)
-
-
-def composite_quadrature_form(method, p_func_=p, a_: float = a, b_: float = b, h__: float = abs(b - a) / 2, act: int = 3, L: float = 2):
+print(integral_cqd())
+print(TARGET)
 
 
 
