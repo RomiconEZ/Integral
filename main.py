@@ -95,9 +95,6 @@ def mU_i_s(a_: float, b_: float, s: int = 0, alpha_: float = alpha):
 # x_3 = b. Оценить методическую погрешность построенного пра-
 # вила (11), сравнить её с точной погрешностью.
 
-# Осталось сделать
-#   1. Оценить методическую погрешность
-#   2. Сравнить методическую погрешность с точной
 
 TARGET = 3.578861536040539915439859609644293194417  # Точное значение интеграла 3
 # TARGET = 20.73027110955223102601793414048307154080  # Точное значение интеграла 9
@@ -156,7 +153,7 @@ print("-------------------------------------------------------------------------
 # Погрешность оценивать методом Ричардсона. На каждых по-
 # следовательных трёх сетках оценивать скорость сходимости по
 # правилу Эйткена.
-def Aitken_process(method, h__: float = abs(b - a) / 3, L: float = 2, a_: float = a, b_: float = b):
+def Aitken_process(method: str = 'newton_cotes', h__: float = abs(b - a) / 3, L: float = 2, a_: float = a, b_: float = b):
 
     h3 = h__ / np.power(L, 2)
     if (np.size(S_h_s, )==0): # Если нет значений в массиве вычисляем
@@ -174,15 +171,6 @@ def Aitken_process(method, h__: float = abs(b - a) / 3, L: float = 2, a_: float 
     S_h_s[1] = S_h3
     m = -(np.log((S_h3 - S_h2) / (S_h2 - S_h1)) / np.log(L))
     return m
-
-
-def Runge_rule(m, method, h__: float = abs(b - a) / 3, L: float = 2, a_: float = a, b_: float = b):
-    h1 = h__
-    h2 = h__ / L
-    S_h1 = method(h_=h1)
-    S_h2 = method(h_=h2)
-    R = (S_h2 - S_h1) / (1 - L ** (-m))
-    return R
 
 
 def Richardson(h_: float = abs(b - a) / 3, method: str = 'newton_cotes', r: int = 4, L: float = 2, m: int = 3):
@@ -256,7 +244,7 @@ def integral_cqd(method: str = 'newton_cotes', a_: float = a, b_: float = b, h_:
     R = Richardson(m=req_m, method=method, h_=h_, r=r)
     print("Cкорость сходимости по Эйткену на шагах [",h,",",h/L,",",h/pow(L,2),"]:", Aitken_process(method=method, h__=h, L=L, a_=a_, b_=b_))
 
-    while (abs(R)>1e-10):
+    while (abs(R)>1e-6):
         h = h / L
         m=Aitken_process(method=method, h__=h, L=L, a_=a_, b_=b_)
         print("Cкорость сходимости по Эйткену на шагах [",h,",",h/L,",",h/pow(L,2),"]:", m)
@@ -273,6 +261,31 @@ print("Составная квадратурная формула на Ньют�
 print("-------------------------------------------------------------------------------------")
 print("Составная квадратурная формула на Гауссе:", integral_cqd(method='gauss', req_m=6))
 
+def h_opt_plus_counting(method: str = 'newton_cotes',h_: float = abs(b - a) / 2,a_: float = a, b_: float = b, m: int = 3,epsilon: float=1e-6):
+    R = Richardson(method=method, h_=h_,r=1)
+    h_opt = h_ * pow(epsilon / abs(R), 1 / m)
+    quad=composite_quadrature_form(method=method, h_=h_opt)
+    return [quad,h_opt]
+
+h1=(b-a)/2
+h2=(b-a)/3
+h3=(b-a)/4
+print("-------------------------------------------------------------------------------------")
+print("На шаге:",h1)
+ans=h_opt_plus_counting(method='newton_cotes',h_=h1,m=3)
+print("Значение квадратурной формы:",ans[0]," ","Оптимальный щаг:")
+print("На шаге:",h2)
+print(h_opt_plus_counting(method='newton_cotes',h_=h2,m=3))
+print("На шаге:",h3)
+print(h_opt_plus_counting(method='newton_cotes',h_=h3,m=3))
+print("-------------------------------------------------------------------------------------")
+print("На шаге:",h1)
+print(h_opt_plus_counting(method='gauss',h_=h1,m=6))
+print("На шаге:",h2)
+print(h_opt_plus_counting(method='gauss',h_=h2,m=6))
+print("На шаге:",h3)
+print(h_opt_plus_counting(method='gauss',h_=h3,m=6))
+print("-------------------------------------------------------------------------------------")
 
 
 
