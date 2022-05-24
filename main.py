@@ -16,27 +16,34 @@ b = 2.3
 # b = 3.2 # 9
 M_n = 23.0382 # Максимум производной от F(x) на искомом промежутке 3
 # M_n = 2.3684 # Максимум производной от F(x) на искомом промежутке 9
+M_n = 210.949 + 0.001  # Максимум третьей производной от f(x) на искомом промежутке 3
+
+# M_n = -2.19581 + 0.0001 # Максимум третьей производной от f(x) на искомом промежутке 9
 
 S_h_s =np.empty((2,0)) # массив посчитанных значений кдваратурной формы для заданного шага
 
 def Gauss(N_: int = 3, a_: float = a, b_: float = b):
     mU = []
     # 1 Вычисляем моменты весовой функции p(x) на [a,b]
-    mU = mU_i_s(a_, b_, s=N_ - 1, alpha_=alpha)[::-1]
-    mU_n_plus_s = map(lambda x: -x, mU[N_:2 * N_])
+    mU = mU_i_s(a_, b_, s=2*N_ - 1, alpha_=alpha)[::-1]
+    mU_n_plus_s = np.array(list(map(lambda x: -x, mU[N_:2 * N_])))
+
     # 2 Решаем СЛАУ
     mU_j_plus_s = np.zeros((N_, N_))
-    for i in range(0, N_):
+    for s_ in range(0, N_):
         for j in range(0, N_):
-            mU_j_plus_s[i, j] = mU[i + j]
-
-    a_i_j = np.linalg.solve(mU_j_plus_s, mU_n_plus_s)
-    # Находим узлы, как корни узлового многочлена
-    # Добавить единичку в a_i_j
-    x_j = np.roots(a_i_j.transpose())
+            mU_j_plus_s[s_, j] = mU[j+s_]
+    a_j = np.linalg.solve(mU_j_plus_s, mU_n_plus_s)[::-1]
+    tmp = np.ones((len(a_j)+1, 1))
+    tmp[1:] = a_j.reshape(len(a_j), 1)
+    a_j = tmp
+    # 3 Находим узлы, как корни узлового многочлена
+    x_j = np.roots(a_j.reshape(len(a_j), ))
+    # 4 Решаем СЛАУ
     A = np.array([np.power(x_j, i) for i in range(0, N_)])
-    return np.linalg.solve(A, mU[0:N_])
-
+    An = np.linalg.solve(A, mU[0:N_])
+    quad = np.sum(An * f(x_j))
+    return quad
 
 # f(x)
 def f(x: np.float_) -> np.float_:
@@ -47,6 +54,8 @@ def f(x: np.float_) -> np.float_:
 def p(x: np.float_) -> np.float_:
     return 1 / (np.power(x - a, -alpha) * np.power(b - x, -betta))
 
+def omega(x: np.float_) -> np.float_:  # Узловой многочлен для трёх узлов
+    return np.float_((x - a) * (x - (b - a) / 2) * (x - b))
 
 def F(x: np.float_) -> np.float_:
     return f(x) / (np.power(x - a, -alpha) * np.power(b - x, -betta))
@@ -123,11 +132,19 @@ def newton_cotes(N_: int = 3, h_: int = -1,
     return quad
 
 
-quad = newton_cotes()
+N = 3
+quad = newton_cotes(N_=N)
 error = abs(quad - TARGET)
-methodic_error = M_n
-print('{:10d}  {:10.10f}  {:.10e}'.format(3, quad, error))
+value_of_integral_for_methodic_error, *_ = integrate.quad(func=lambda x_: abs(p(x_) * omega(x_)), a=a, b=b)
+methodic_error = (M_n / 6) * value_of_integral_for_methodic_error
+print('N = {:3d}  значение интеграла = {:10.10f}  разность с точной погрежностью = {:.10e}, '
+      'методическая погрешность = {:.10e}'.format(N, quad, error, methodic_error))
 
+N = 3
+quad = Gauss()
+error = abs(quad - TARGET)
+print('N = {:3d}  значение интеграла = {:10.10f}  разность с точной погрежностью = {:.10e}, '
+      'методическая погрешность = {:.10e}'.format(N, quad, error, methodic_error))
 
 # Task 1.2
 # На базе построенной малой ИКФ построить составную КФ и,
@@ -204,19 +221,6 @@ def Richardson(h_: float = abs(b - a) / 3, method: str = 'newton_cotes', r: int 
     return R_h
 
 
-# def integral(method, a_: float = a, b_: float = b, h__: float = abs(b - a) / 2, act: int = 3, L: float = 2):
-#     m = Aitken_process(method, h__, L, a_, b_, )
-#     print('Процесс Эйткена: m=', m)
-#     h = h__
-#     while (m < act + 0.5) | (m - 0.2 < act):
-#         h = h / L
-#         m = Aitken_process(method, h, L, a_, b_)
-#     S_h_s = np.empty((2,0))
-#     R = Runge_rule(m, method, h, L, a_, b_)
-#     print('Правило Рунге: R_h = ', R, ', где h=', h)
-#     ans = newton_cotes(h_=h / np.power(L, 2), a_=a, b_=b)
-#     return ans
-
 def composite_quadrature_form(method: str = 'newton_cotes', a_: float = a, b_: float = b, h_: float = abs(b - a) / 2, N_: int = 3):
     """
         Parameters
@@ -284,31 +288,3 @@ print(TARGET)
 #   выходить за границы отрезка интегрирования, что не позволит най-
 #   ти с их помощью решение задачи.
 
-def Gauss(p_func=p, N_: int = 3, a_: float = a, b_: float = b):
-    mU = []
-
-    # 1 Вычисляем моменты весовой функции p(x) на [a,b]
-    for i in range(0, 2 * N_):
-        v, *_ = integrate.quad(func=lambda x_: p_func(x_) * np.power(x_, i), a=a_, b=b_)
-        mU.append(v)
-
-    mU_n_plus_s = map(lambda x: -x, mU[N_:2 * N_])
-    # 2 Решаем СЛАУ
-    mU_j_plus_s = np.zeros((N_, N_))
-    for i in range(0, N_):
-        for j in range(0, N_):
-            mU_j_plus_s[i, j] = mU[i + j]
-
-    a_i_j = np.linalg.solve(mU_j_plus_s, mU_n_plus_s)
-    # Находим узлы, как корни узлового многочлена
-    # Добавить единичку в a_i_j
-    x_j = np.roots(a_i_j.transpose())
-    A = np.array([np.power(x_j, i) for i in range(0, N_)])
-    return np.linalg.solve(A, mU[0:N_])
-
-# N = 3
-# x_ = np.linspace(a, b, N)
-# An = Gauss(N_=N)
-# quad = np.sum(An * f(x_))
-# error = abs(quad - exact)
-# print('{:2d}  {:10.9f}  {:.5e}'.format(N, quad, error))
