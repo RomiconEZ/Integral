@@ -133,18 +133,22 @@ def newton_cotes(N_: int = 3, h_: int = -1,
 
 
 N = 3
-quad = newton_cotes(N_=N)
-error = abs(quad - TARGET)
+
 value_of_integral_for_methodic_error, *_ = integrate.quad(func=lambda x_: abs(p(x_) * omega(x_)), a=a, b=b)
 methodic_error = (M_n / 6) * value_of_integral_for_methodic_error
-print('N = {:3d}  значение интеграла = {:10.10f}  разность с точной погрежностью = {:.10e}, '
+
+quad = newton_cotes(N_=N)
+error = abs(quad - TARGET)
+print("-------------------------------------------------------------------------------------")
+print('Ньютон-Котс: N = {:3d}  значение интеграла = {:10.10f}  разность с точной погрежностью = {:.10e}, '
       'методическая погрешность = {:.10e}'.format(N, quad, error, methodic_error))
 
 N = 3
 quad = Gauss()
 error = abs(quad - TARGET)
-print('N = {:3d}  значение интеграла = {:10.10f}  разность с точной погрежностью = {:.10e}, '
+print('Гаусс: N = {:3d}  значение интеграла = {:10.10f}  разность с точной погрежностью = {:.10e}, '
       'методическая погрешность = {:.10e}'.format(N, quad, error, methodic_error))
+print("-------------------------------------------------------------------------------------")
 
 # Task 1.2
 # На базе построенной малой ИКФ построить составную КФ и,
@@ -250,22 +254,24 @@ def integral_cqd(method: str = 'newton_cotes', a_: float = a, b_: float = b, h_:
     r=1
     h=h_/L
     R = Richardson(m=req_m, method=method, h_=h_, r=r)
-    print('Cкорость сходимости по Эйткену: ', Aitken_process(method=method, h__=h, L=L, a_=a_, b_=b_))
+    print("Cкорость сходимости по Эйткену на шагах [",h,",",h/L,",",h/pow(L,2),"]:", Aitken_process(method=method, h__=h, L=L, a_=a_, b_=b_))
 
     while (abs(R)>1e-10):
         h = h / L
         m=Aitken_process(method=method, h__=h, L=L, a_=a_, b_=b_)
-        print("Cкорость сходимости по Эйткену: ", m)
+        print("Cкорость сходимости по Эйткену на шагах [",h,",",h/L,",",h/pow(L,2),"]:", m)
         r+=1
         R = Richardson(m=req_m, method=method, h_=h_, r=r)
     h = h / L**2
     S_h_s = np.empty((2, 0))
+
     print('Правило Ричардсона: R_h = ', R, ', где h=', h)
     ans = composite_quadrature_form(method=method, a_ = a, b_= b, h_=h)
     return ans
 
-print(integral_cqd())
-print(TARGET)
+print("Составная квадратурная формула на Ньютоне-Котсе:", integral_cqd(method='newton_cotes'))
+print("-------------------------------------------------------------------------------------")
+print("Составная квадратурная формула на Гауссе:", integral_cqd(method='gauss', req_m=6))
 
 
 
