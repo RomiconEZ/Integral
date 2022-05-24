@@ -239,6 +239,7 @@ def composite_quadrature_form(method: str = 'newton_cotes', a_: float = a, b_: f
     return Res_S
 
 def integral_cqd(method: str = 'newton_cotes', a_: float = a, b_: float = b, h_: float = abs(b - a) / 2, req_m:int =3,L:int=2):
+    S_h_s = np.empty((2, 0))
     r=1
     h=h_/L
     R = Richardson(m=req_m, method=method, h_=h_, r=r)
@@ -246,12 +247,12 @@ def integral_cqd(method: str = 'newton_cotes', a_: float = a, b_: float = b, h_:
 
     while (abs(R)>1e-6):
         h = h / L
-        m=Aitken_process(method=method, h__=h, L=L, a_=a_, b_=b_)
+        m = Aitken_process(method=method, h__=h, L=L, a_=a_, b_=b_)
         print("Cкорость сходимости по Эйткену на шагах [",h,",",h/L,",",h/pow(L,2),"]:", m)
-        r+=1
+        r += 1
         R = Richardson(m=req_m, method=method, h_=h_, r=r)
     h = h / L**2
-    S_h_s = np.empty((2, 0))
+
 
     print('Правило Ричардсона: R_h = ', R, ', где h=', h)
     ans = composite_quadrature_form(method=method, a_ = a, b_= b, h_=h)
@@ -262,29 +263,37 @@ print("-------------------------------------------------------------------------
 print("Составная квадратурная формула на Гауссе:", integral_cqd(method='gauss', req_m=6))
 
 def h_opt_plus_counting(method: str = 'newton_cotes',h_: float = abs(b - a) / 2,a_: float = a, b_: float = b, m: int = 3,epsilon: float=1e-6):
-    R = Richardson(method=method, h_=h_,r=1)
+    R = Richardson(method=method, h_=h_,r=1,m=m)
     h_opt = h_ * pow(epsilon / abs(R), 1 / m)
-    quad=composite_quadrature_form(method=method, h_=h_opt)
+
+    quad=integral_cqd(method=method, h_=h_opt,req_m=m)
     return [quad,h_opt]
 
 h1=(b-a)/2
 h2=(b-a)/3
 h3=(b-a)/4
 print("-------------------------------------------------------------------------------------")
+print("Ньютон-Котс:")
 print("На шаге:",h1)
 ans=h_opt_plus_counting(method='newton_cotes',h_=h1,m=3)
-print("Значение квадратурной формы:",ans[0]," ","Оптимальный щаг:")
+print("Значение квадратурной формы:",ans[0]," ","Оптимальный шаг:",ans[1])
 print("На шаге:",h2)
-print(h_opt_plus_counting(method='newton_cotes',h_=h2,m=3))
+ans=h_opt_plus_counting(method='newton_cotes',h_=h2,m=3)
+print("Значение квадратурной формы:",ans[0]," ","Оптимальный шаг:",ans[1])
 print("На шаге:",h3)
-print(h_opt_plus_counting(method='newton_cotes',h_=h3,m=3))
+ans=h_opt_plus_counting(method='newton_cotes',h_=h3,m=3)
+print("Значение квадратурной формы:",ans[0]," ","Оптимальный шаг:",ans[1])
 print("-------------------------------------------------------------------------------------")
+print("Гаусс:")
 print("На шаге:",h1)
-print(h_opt_plus_counting(method='gauss',h_=h1,m=6))
+ans=h_opt_plus_counting(method='gauss',h_=h1,m=6)
+print("Значение квадратурной формы:",ans[0]," ","Оптимальный шаг:",ans[1])
 print("На шаге:",h2)
-print(h_opt_plus_counting(method='gauss',h_=h2,m=6))
+ans=h_opt_plus_counting(method='gauss',h_=h2,m=6)
+print("Значение квадратурной формы:",ans[0]," ","Оптимальный шаг:",ans[1])
 print("На шаге:",h3)
-print(h_opt_plus_counting(method='gauss',h_=h3,m=6))
+ans=h_opt_plus_counting(method='gauss',h_=h3,m=6)
+print("Значение квадратурной формы:",ans[0]," ","Оптимальный шаг:",ans[1])
 print("-------------------------------------------------------------------------------------")
 
 
