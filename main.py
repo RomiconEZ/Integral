@@ -2,7 +2,6 @@
 
 import numpy as np
 from scipy import integrate
-from scipy.special import gammaln
 from math import comb
 
 # Степени и пределы интегрирования
@@ -14,8 +13,10 @@ b = 2.3
 # betta = 0 # 9
 # a = 0.7 # 9
 # b = 3.2 # 9
-M_n = 23.0382 # Максимум производной от F(x) на искомом промежутке 3
-# M_n = 2.3684 # Максимум производной от F(x) на искомом промежутке 9
+M_n = 210.949 + 0.001  # Максимум третьей производной от f(x) на искомом промежутке 3
+
+
+# M_n = -2.19581 + 0.0001 # Максимум третьей производной от f(x) на искомом промежутке 9
 
 
 def Gauss(N_: int = 3, a_: float = a, b_: float = b):
@@ -43,12 +44,12 @@ def f(x: np.float_) -> np.float_:
            4. * np.sin(3.5 * x) * np.exp(-3.0 * x) + 3 * x
 
 
-def F_diff(x: float)->float:
-    return
-
-
 def p(x: np.float_) -> np.float_:
-    return 1 / (np.power(x - a, -alpha) * np.power(b - x, -betta))
+    return 1 / (np.power(x - a, alpha) * np.power(b - x, betta))
+
+
+def omega(x: np.float_) -> np.float_:  # Узловой многочлен для трёх узлов
+    return np.float_((x - a) * (x - (b - a) / 2) * (x - b))
 
 
 def F(x: np.float_) -> np.float_:
@@ -95,14 +96,14 @@ def mU_i_s(a_: float, b_: float, s: int = 0, alpha_: float = alpha):
 
 TARGET = 3.578861536040539915439859609644293194417  # Точное значение интеграла 3
 # TARGET = 20.73027110955223102601793414048307154080  # Точное значение интеграла 9
-print(TARGET)
+print('Target = ', TARGET)
 
 
 def newton_cotes(N_: int = 3, h_: int = -1,
                  a_: float = a, b_: float = b):
     """
     :param N_: количество отрезков
-    :param h_: шаг. Елси задан, то используется он
+    :param h_: шаг. Если задан, то используется он
     :param a_: нижний предел интегрирования
     :param b_: верхний предел интегрирования
     :return:
@@ -129,8 +130,10 @@ def newton_cotes(N_: int = 3, h_: int = -1,
 N = 3
 quad = newton_cotes(N_=N)
 error = abs(quad - TARGET)
-methodic_error = M_n
-print('{:10d}  {:10.10f}  {:.10e}'.format(N, quad, error))
+value_of_integral_for_methodic_error, *_ = integrate.quad(func=lambda x_: abs(p(x_) * omega(x_)), a=a, b=b)
+methodic_error = (M_n / 6) * value_of_integral_for_methodic_error
+print('N = {:3d}  значение интеграла = {:10.10f}  разность с точной погрежностью = {:.10e}, '
+      'методическая погрешность = {:.10e}'.format(N, quad, error, methodic_error))
 
 
 # Task 1.2
@@ -216,7 +219,6 @@ print(ans)
 
 def skf(method, p_func_=p, a_: float = a, b_: float = b, h__: float = abs(b - a) / 3, act: int = 3, L: float = 2):
     m = Aitken_process(method, h__, L, a_, b_, )
-
 
 
 # Task 1.3
