@@ -1,8 +1,11 @@
 # from builtins import function
+import math
 
 import numpy as np
 from scipy import integrate
+from scipy.special import gammaln
 from math import comb
+import math
 
 # Степени и пределы интегрирования
 alpha = 1 / 5
@@ -13,25 +16,28 @@ b = 2.3
 # betta = 0 # 9
 # a = 0.7 # 9
 # b = 3.2 # 9
+M_n = 23.0382  # Максимум производной от F(x) на искомом промежутке 3
+# M_n = 2.3684 # Максимум производной от F(x) на искомом промежутке 9
 M_n = 210.949 + 0.001  # Максимум третьей производной от f(x) на искомом промежутке 3
 
-
 # M_n = -2.19581 + 0.0001 # Максимум третьей производной от f(x) на искомом промежутке 9
+
+S_h_s = np.empty((2, 0))  # массив посчитанных значений кдваратурной формы для заданного шага
 
 
 def Gauss(N_: int = 3, a_: float = a, b_: float = b):
     mU = []
     # 1 Вычисляем моменты весовой функции p(x) на [a,b]
-    mU = mU_i_s(a_, b_, s=2*N_ - 1, alpha_=alpha)[::-1]
+    mU = mU_i_s(a_, b_, s=2 * N_ - 1, alpha_=alpha)[::-1]
     mU_n_plus_s = np.array(list(map(lambda x: -x, mU[N_:2 * N_])))
 
     # 2 Решаем СЛАУ
     mU_j_plus_s = np.zeros((N_, N_))
     for s_ in range(0, N_):
         for j in range(0, N_):
-            mU_j_plus_s[s_, j] = mU[j+s_]
+            mU_j_plus_s[s_, j] = mU[j + s_]
     a_j = np.linalg.solve(mU_j_plus_s, mU_n_plus_s)[::-1]
-    tmp = np.ones((len(a_j)+1, 1))
+    tmp = np.ones((len(a_j) + 1, 1))
     tmp[1:] = a_j.reshape(len(a_j), 1)
     a_j = tmp
     # 3 Находим узлы, как корни узлового многочлена
@@ -50,7 +56,7 @@ def f(x: np.float_) -> np.float_:
 
 
 def p(x: np.float_) -> np.float_:
-    return 1 / (np.power(x - a, alpha) * np.power(b - x, betta))
+    return 1 / (np.power(x - a, -alpha) * np.power(b - x, -betta))
 
 
 def omega(x: np.float_) -> np.float_:  # Узловой многочлен для трёх узлов
@@ -95,20 +101,17 @@ def mU_i_s(a_: float, b_: float, s: int = 0, alpha_: float = alpha):
 # x_3 = b. Оценить методическую погрешность построенного пра-
 # вила (11), сравнить её с точной погрешностью.
 
-# Осталось сделать
-#   1. Оценить методическую погрешность
-#   2. Сравнить методическую погрешность с точной
 
 TARGET = 3.578861536040539915439859609644293194417  # Точное значение интеграла 3
 # TARGET = 20.73027110955223102601793414048307154080  # Точное значение интеграла 9
-print('Target = ', TARGET)
+print('TARGET= ', TARGET)
 
 
 def newton_cotes(N_: int = 3, h_: int = -1,
                  a_: float = a, b_: float = b):
     """
     :param N_: количество отрезков
-    :param h_: шаг. Если задан, то используется он
+    :param h_: шаг. Елси задан, то используется он
     :param a_: нижний предел интегрирования
     :param b_: верхний предел интегрирования
     :return:
@@ -131,20 +134,24 @@ def newton_cotes(N_: int = 3, h_: int = -1,
 
     return quad
 
+
 N = 3
-quad = newton_cotes(N_=N)
-error = abs(quad - TARGET)
+
 value_of_integral_for_methodic_error, *_ = integrate.quad(func=lambda x_: abs(p(x_) * omega(x_)), a=a, b=b)
 methodic_error = (M_n / 6) * value_of_integral_for_methodic_error
-print('N = {:3d}  значение интеграла = {:10.10f}  разность с точной погрежностью = {:.10e}, '
-      'методическая погрешность = {:.10e}'.format(N, quad, error, methodic_error))
 
+quad = newton_cotes(N_=N)
+error = abs(quad - TARGET)
+print("-------------------------------------------------------------------------------------")
+print('Ньютон-Котс: N = {:3d}  значение интеграла = {:10.10f}  разность с точной погрежностью = {:.10e}, '
+      'методическая погрешность = {:.10e}'.format(N, quad, error, methodic_error))
 
 N = 3
 quad = Gauss()
 error = abs(quad - TARGET)
-print('N = {:3d}  значение интеграла = {:10.10f}  разность с точной погрежностью = {:.10e}, '
+print('Гаусс: N = {:3d}  значение интеграла = {:10.10f}  разность с точной погрежностью = {:.10e}, '
       'методическая погрешность = {:.10e}'.format(N, quad, error, methodic_error))
+print("-------------------------------------------------------------------------------------")
 
 
 # Task 1.2
@@ -153,27 +160,27 @@ print('N = {:3d}  значение интеграла = {:10.10f}  разнос�
 # Погрешность оценивать методом Ричардсона. На каждых по-
 # следовательных трёх сетках оценивать скорость сходимости по
 # правилу Эйткена.
-def Aitken_process(method, h__: float = abs(b - a) / 3, L: float = 2, a_: float = a, b_: float = b):
-    h1 = h__
-    h2 = h__ / L
+def Aitken_process(method: str = 'newton_cotes', h__: float = abs(b - a) / 3, L: float = 2, a_: float = a,
+                   b_: float = b):
     h3 = h__ / np.power(L, 2)
-    S_h1 = newton_cotes(h_=h1)
-    S_h2 = newton_cotes(h_=h2)
-    S_h3 = newton_cotes(h_=h3)
-    m = -(np.log((S_h3 - S_h2) / S_h2 - S_h1) / np.log(L))
+    if (np.size(S_h_s, ) == 0):  # Если нет значений в массиве вычисляем
+        h1 = h__
+        h2 = h__ / L
+        S_h1 = composite_quadrature_form(h_=h1, method=method)
+        S_h2 = composite_quadrature_form(h_=h2, method=method)
+
+    else:  # Если есть, то берем уже высчитанные на предыдущих шагах
+        S_h1 = S_h_s[0]
+        S_h2 = S_h_s[1]
+
+    S_h3 = composite_quadrature_form(h_=h3, method=method)
+    S_h_s[0] = S_h2
+    S_h_s[1] = S_h3
+    m = -(np.log((S_h3 - S_h2) / (S_h2 - S_h1)) / np.log(L))
     return m
 
 
-def Runge_rule(m, method, h__: float = abs(b - a) / 3, L: float = 2, a_: float = a, b_: float = b):
-    h1 = h__
-    h2 = h__ / L
-    S_h1 = method(h_=h1)
-    S_h2 = method(h_=h2)
-    R = (S_h2 - S_h1) / (1 - L ** (-m))
-    return R
-
-
-def Richardson(h__: float = abs(b - a) / 3, method: str = 'newton_cotes', r: int = 4, L: float = 1.1, m: int = 3):
+def Richardson(h_: float = abs(b - a) / 3, method: str = 'newton_cotes', r: int = 4, L: float = 2, m: int = 3):
     """
     Parameters
     ----------
@@ -181,55 +188,96 @@ def Richardson(h__: float = abs(b - a) / 3, method: str = 'newton_cotes', r: int
         АСТ+1
     :param L:
         Дробление шага
-    :param h__: float
+    :param h_: float
         величина шага
     :param method: str =
         ипользуемый метод оценки == 'newton_cotes' || 'gauss'
     :param r: int
         степень разложения
-    :return: list
+    :return: np.array
     """
     # Выбираем метод
     methods = {'newton_cotes': newton_cotes, 'gauss': Gauss}
     # Выбираем набор шагов для разложения
-    hs = np.array([h__ / pow(L, k) for k in range(r + 1)])
+    hs = np.array([h_ / pow(L, k) for k in range(r + 1)])
     # Формируем матрицу из шагов
-    H_r = np.array([[pow(value, i) for i in np.arange(m, m + r)] for value in hs[:-1:]])
-    H_l = np.array([[pow(value, i) for i in np.arange(m, m + r)] for value in hs[1::]])
+    m_drob = m % 1
+    m_whole = int(m // 1)
+    H_l = np.array([[pow(value, i+m_drob) for i in np.arange(m_whole, m_whole + r)] for value in hs[:-1]])
+    H_r = np.array([[pow(value, i+m_drob) for i in np.arange(m_whole, m_whole + r)] for value in hs[1:]])
     H = H_l - H_r
     # Формируем вектор разностей значений КФ
     S = []
     for i in hs:
-        S.append(methods[method](h_=i))
+        S.append(composite_quadrature_form(h_=i, method=method))
     S = np.array(S).reshape(len(S), 1)
+
     S = S[1:] - S[:-1]
 
     # Решаем СЛАУ и находим коэффициенты C_n
     Cn = np.linalg.solve(H, S)
-    # На каком шаге считать погрешность?
-    result = list()
-    return result
+    L_end = pow(L, r)  # множитель L для последнего шага
+    h = np.array([pow(hs[r], k+m_drob) / L_end for k in np.arange(m_whole, m_whole + r)])
+    R_h = np.matmul(Cn.reshape(1, r), h.reshape(r, 1))[0][0]
+    return R_h
 
 
-def integral(method, a_: float = a, b_: float = b, h__: float = abs(b - a) / 2, act: int = 3, L: float = 2):
-    m = Aitken_process(method, h__, L, a_, b_, )
-    print('Процесс Эйткена: m=', m)
-    h = h__
-    while (m < act + 0.5) | (m - 0.2 < act):
+def composite_quadrature_form(method: str = 'newton_cotes', a_: float = a, b_: float = b, h_: float = abs(b - a) / 2,
+                              N_: int = 3):
+    """
+        Parameters
+        ----------
+        :param N_:
+        :param h_: float
+            величина шага
+        :param method: str =
+            ипользуемый метод оценки == 'newton_cotes' || 'gauss'
+        :param a_: нижний предел интегрирования
+        :param b_: верхний предел интегрирования
+        :return: number
+        """
+    methods = {'newton_cotes': newton_cotes, 'gauss': Gauss}
+    # Задаём отрезки, на которых будут строиться квадратурные формулы
+    if h_ != -1:
+        nodes_x = np.arange(a_, b_ + h_, h_)
+    else:
+        nodes_x = np.linspace(a_, b_, N_)
+    Res_S = 0
+    # Вычисляем результирующую сумму,суммируя значения интегралов на каждом подотрезке
+    for i in range(len(nodes_x) - 1):
+        Res_S += methods[method](a_=nodes_x[i], b_=nodes_x[i + 1])
+    return Res_S
+
+
+def integral_cqd(method: str = 'newton_cotes', a_: float = a, b_: float = b, h_: float = abs(b - a) / 2, req_m: int = 3,
+                 L: int = 2):
+    global S_h_s
+    S_h_s = np.empty((2, 0))
+    r = 1
+    if not (b-a)%h_ < 1e-6:
+        h_ = (b-a) / (((b-a) // h_) + 1)
+    h = h_ / L
+    R = Richardson(m=req_m, method=method, h_=h_, r=r) # Не забыть о хвосте шага, чтобы полностью заполнять отрезок
+    print("Cкорость сходимости по Эйткену на шагах [", h_, ",", h_ / L, ",", h_ / pow(L, 2), "]:",
+          Aitken_process(method=method, h__=h_, L=L, a_=a_, b_=b_))
+
+    while abs(R) > 1e-6:
         h = h / L
-        m = Aitken_process(method, h, L, a_, b_)
-    R = Runge_rule(m, method, h, L, a_, b_)
-    print('Правило Рунге: R_h = ', R, ', где h=', h)
-    ans = newton_cotes(h_=h / np.power(L, 2), a_=a, b_=b)
+        m = Aitken_process(method=method, h__=h, L=L, a_=a_, b_=b_)
+        print("Cкорость сходимости по Эйткену на шагах [", h, ",", h / L, ",", h / pow(L, 2), "]:", m)
+        r += 1
+        if not math.isnan(m):
+            R = Richardson(m=m, method=method, h_=h, r=1)
+        print(composite_quadrature_form(method=method, a_=a, b_=b, h_=h))
+
+    print('Правило Ричардсона: R_h = ', R, ', где h=', h)
+    ans = composite_quadrature_form(method=method, a_=a, b_=b, h_=h)
     return ans
 
 
-ans = integral(method=newton_cotes)
-print(ans)
-
-
-def skf(method, p_func_=p, a_: float = a, b_: float = b, h__: float = abs(b - a) / 3, act: int = 3, L: float = 2):
-    m = Aitken_process(method, h__, L, a_, b_, )
+print("Составная квадратурная формула на Ньютоне-Котсе:", integral_cqd(method='newton_cotes'))
+print("-------------------------------------------------------------------------------------")
+print("Составная квадратурная формула на Гауссе:", integral_cqd(method='gauss', req_m=6))
 
 
 # Task 1.3
@@ -238,22 +286,39 @@ def skf(method, p_func_=p, a_: float = a, b_: float = b, h__: float = abs(b - a)
 # мости и выбрать оптимальный шаг h opt . Начать расчёт c шага
 # h opt и снова довести до требуемой точности ε.
 
-# Вариант Гаусса
-# Выполнить всё то же самое, используя трёхточечные формулы Гаусса вместо формул Ньютона — Котса. Узлы каждой малой формулы
-# находить либо с помощью формул Кардано, либо численно.
-#
-# Замечание:
-#   Обратите внимание, что из-за ограниченности разрядной сетки
-#   при хранении чисел и большой чувствительности полиномов к по-
-#   грешностям в их коэффициентах, может оказаться так, что узлы
-#   формул Гаусса, находимые как корни узлового многочлена, будут
-#   выходить за границы отрезка интегрирования, что не позволит най-
-#   ти с их помощью решение задачи.
+
+def h_opt_plus_counting(method: str = 'newton_cotes', h_: float = abs(b - a) / 2,
+                        m: int = 3, epsilon: float = 1e-6):
+    R = Richardson(method=method, h_=h_, r=1, m=m) # Вернуть оптимальный шаг
+    h_opt = h_/2 * pow(epsilon / abs(R), 1 / m)
+    print(h_opt)
+    quad = integral_cqd(method=method, h_=h_opt, req_m=m)
+    return [quad, h_opt]
 
 
-# N = 3
-# x_ = np.linspace(a, b, N)
-# An = Gauss(N_=N)
-# quad = np.sum(An * f(x_))
-# error = abs(quad - exact)
-# print('{:2d}  {:10.9f}  {:.5e}'.format(N, quad, error))
+h1 = (b - a) / 2
+h2 = (b - a) / 3
+h3 = (b - a) / 4
+print("-----------------------------------Задание 3---------------------------------------------------")
+print("Ньютон-Котс:")
+print("На шаге:", h1)
+ans = h_opt_plus_counting(method='newton_cotes', h_=h1, m=3)
+print("Значение квадратурной формы:", ans[0], " ", "Оптимальный шаг по Рунге:", ans[1])
+print("На шаге:", h2)
+ans = h_opt_plus_counting(method='newton_cotes', h_=h2, m=3)
+print("Значение квадратурной формы:", ans[0], " ", "Оптимальный шаг по Рунге:", ans[1])
+print("На шаге:", h3)
+ans = h_opt_plus_counting(method='newton_cotes', h_=h3, m=3)
+print("Значение квадратурной формы:", ans[0], " ", "Оптимальный шаг по Рунге::", ans[1])
+print("----------------------------------------------------------------------------------------------")
+print("Гаусс:")
+print("На шаге:", h1)
+ans = h_opt_plus_counting(method='gauss', h_=h1, m=6)
+print("Значение квадратурной формы:", ans[0], " ", "Оптимальный шаг по Рунге::", ans[1])
+print("На шаге:", h2)
+ans = h_opt_plus_counting(method='gauss', h_=h2, m=6)
+print("Значение квадратурной формы:", ans[0], " ", "Оптимальный шаг по Рунге::", ans[1])
+print("На шаге:", h3)
+ans = h_opt_plus_counting(method='gauss', h_=h3, m=6)
+print("Значение квадратурной формы:", ans[0], " ", "Оптимальный шаг по Рунге::", ans[1])
+print("-------------------------------------------------------------------------------------")
